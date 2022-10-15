@@ -4,7 +4,8 @@ cbuffer Matrices : register(b0)
 	float4x4 ViewMatrix;
 	float4x4 ProjectionMatrix;
 	float3 CameraPosition;
-	float Pad[13];
+	float Time;
+	float Pad[12];
 };
 
 cbuffer PSConstantBufferLayout : register(b1)

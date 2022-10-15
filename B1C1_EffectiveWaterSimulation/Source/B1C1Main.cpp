@@ -20,6 +20,7 @@ const int WindowHeight = 720;
 HWND MainWindow;
 bool bOpenWindow = true;
 float TimeMiliseconds = 0;
+float TimeSeconds = 0;
 
 float MouseX = 0.0f;
 float MouseY = 0.0f;
@@ -175,16 +176,17 @@ struct Matrices
 	Matrix<float> ViewMatrix;
 	Matrix<float> ProjectionMatrix;
 	Vector3f CameraPosition;
-	float Pad[13];
+	float Time;
+	float Pad[12];
 } Mats;
 
 struct PSConstantBufferLayout
 {
 	Vector3f ColorOverlay = Vector3f(1.0f);
-	float TesselationAmount = 64;
+	float TesselationAmount = 14;
 	float Height = 2.0f;
-	float TesselationOffset = 5.0f;
-	float TesselationLength = 15.0f;
+	float TesselationOffset = 50.0f;
+	float TesselationLength = 50.0f;
 	float Pad1[57];
 } PSConstantBuffer;
 
@@ -471,6 +473,7 @@ void AppInit()
 	psoDesc.HS = { reinterpret_cast<UINT8*>(HullShader->GetBufferPointer()), HullShader->GetBufferSize() };
 	psoDesc.DS = { reinterpret_cast<UINT8*>(DomainShader->GetBufferPointer()), DomainShader->GetBufferSize() };
 	D3D12_RASTERIZER_DESC RasterDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	//RasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	RasterDesc.MultisampleEnable = FALSE;
 	psoDesc.RasterizerState = RasterDesc;
 	psoDesc.BlendState = BlendDesc;
@@ -718,6 +721,8 @@ void AppTick(float DeltaTime)
 		(float)WindowWidth / (float)WindowHeight, 0.1f, 1000.0f);
 	Mats.ProjectionMatrix = ProjectionMatrix;
 
+	Mats.Time = TimeSeconds;
+
 	memcpy(D_MatricesBeginP, &Mats, sizeof(Matrices));
 	// --------------------------------------------------------------------------------------
 
@@ -767,6 +772,8 @@ void AppTick(float DeltaTime)
 	ImGui::ColorEdit3("Color Overlay", &PSConstantBuffer.ColorOverlay.X);
 	ImGui::SliderFloat("TesselationAmount", &PSConstantBuffer.TesselationAmount, 1.0f, 64.0f);
 	ImGui::SliderFloat("Height", &PSConstantBuffer.Height, 0.0f, 10.0f);
+	ImGui::SliderFloat("TesselationOffset", &PSConstantBuffer.TesselationOffset, 0.0f, 100.0f);
+	ImGui::SliderFloat("TesselationLength", &PSConstantBuffer.TesselationLength, 0.0f, 100.0f);
 	ImGui::End();
 
 	ImGui::EndFrame();
@@ -792,7 +799,7 @@ void AppTick(float DeltaTime)
 	ID3D12CommandList* ppCommandLists[] = { D_CommandList.Get() };
 	D_CommandQue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-	D_SwapChain->Present(1, 0);
+	D_SwapChain->Present(0, 0);
 
 	WaitForPreviousFrame();
 
@@ -842,6 +849,7 @@ int WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LP
 		float DeltaTime = TickTime - TimeMiliseconds;
 		TimeMiliseconds = TickTime;
 
+		TimeSeconds += TickTime * 0.000001f;
 
 		POINT P = POINT();
 		GetCursorPos(&P);

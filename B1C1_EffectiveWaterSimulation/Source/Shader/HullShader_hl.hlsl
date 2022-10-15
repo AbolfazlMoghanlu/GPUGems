@@ -4,7 +4,8 @@ cbuffer Matrices : register(b0)
 	float4x4 ViewMatrix;
 	float4x4 ProjectionMatrix;
 	float3 CameraPosition;
-	float Pad[13];
+	float Time;
+	float Pad[12];
 };
 
 cbuffer PSConstantBufferLayout : register(b1)
@@ -42,10 +43,23 @@ Patch ConstantHS(InputPatch<VSOut, 3> patch, uint pI:SV_PrimitiveID)
 {
 	Patch p;
 
-	p.edgeTessFactor[0] = TesselationAmount;
-	p.edgeTessFactor[1] = TesselationAmount;
-	p.edgeTessFactor[2] = TesselationAmount;
-	p.inTessFactor = TesselationAmount;
+	float3 Pos0 = mul(TransformMatrix, patch[0].pos).xyz;
+	float3 Pos1 = mul(TransformMatrix, patch[1].pos).xyz;
+	float3 Pos2 = mul(TransformMatrix, patch[2].pos).xyz;
+
+	float CameraToPatch0 = length(Pos0 - CameraPosition);
+	float CameraToPatch1 = length(Pos1 - CameraPosition);
+	float CameraToPatch2 = length(Pos2 - CameraPosition);
+
+	float DistanceFactor0 = saturate((CameraToPatch0 - TesselationOffset) / TesselationLength);
+	float DistanceFactor1 = saturate((CameraToPatch1 - TesselationOffset) / TesselationLength);
+	float DistanceFactor2 = saturate((CameraToPatch2 - TesselationOffset) / TesselationLength);
+
+	p.edgeTessFactor[0] = lerp(TesselationAmount, 1, DistanceFactor0);
+	p.edgeTessFactor[1] = lerp(TesselationAmount, 1, DistanceFactor1);
+	p.edgeTessFactor[2] = lerp(TesselationAmount, 1, DistanceFactor2);
+
+	p.inTessFactor = (p.edgeTessFactor[0] + p.edgeTessFactor[1] + p.edgeTessFactor[2]) / 3;
 
 	return p;
 }
