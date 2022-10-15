@@ -11,11 +11,17 @@ cbuffer Matrices : register(b0)
 cbuffer PSConstantBufferLayout : register(b1)
 {
 	float3 ColorOverlay;
-	float TesselationAmount = 64;
-	float Height = 2.0f;
-	float TesselationOffset = 5.0f;
-	float TesselationLength = 15.0f;
-	float Pad1[57];
+	float TesselationAmount;
+	float Height;
+	float TesselationOffset;
+	float TesselationLength;
+	float WaveLength;
+
+	float3 Direction;
+	float Amplitude;
+
+	float Speed;
+	float Pad1[51];
 }
 
 
@@ -45,8 +51,9 @@ HS_OUTPUT main(Patch input,
 
 	Output.pos = mul(TransformMatrix, Output.pos);
 
-	float H = sin(Output.pos.z) * Height;
-	Output.pos += float4(0, H, 0, 0);
+	float W = Amplitude * sin(dot(Direction.xy, Output.pos.xz) * 2 / WaveLength + Time * Speed * 2 / WaveLength);
+
+	Output.pos += float4(0, W, 0, 0);
 
 	Output.pos = mul(ViewMatrix, Output.pos);
 	Output.pos = mul(ProjectionMatrix, Output.pos);

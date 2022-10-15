@@ -111,6 +111,7 @@ ComPtr<ID3D12CommandQueue> D_CommandQue;
 ComPtr<ID3D12CommandAllocator> D_CommandAllocator;
 ComPtr<ID3D12RootSignature> D_RootSignature;
 ComPtr<ID3D12PipelineState> D_PipelineState;
+ComPtr<ID3D12PipelineState> D_PipelineStateWireFrame;
 ComPtr<ID3D12GraphicsCommandList> D_CommandList;
 ComPtr<ID3D12DescriptorHeap> D_RVTDescriptorHeap;
 ComPtr<ID3D12DescriptorHeap> D_DSTDescriptorHeap;
@@ -184,11 +185,20 @@ struct PSConstantBufferLayout
 {
 	Vector3f ColorOverlay = Vector3f(1.0f);
 	float TesselationAmount = 14;
+
 	float Height = 2.0f;
 	float TesselationOffset = 50.0f;
 	float TesselationLength = 50.0f;
-	float Pad1[57];
+	float WaveLength = 10.0f;
+	
+	Vector3f Direction = Vector3f(1.0f, 0.0f, 0.0f);
+	float Amplitude = 1.5f;
+	
+	float Speed = 0.00005f;
+	float Pad1[51];
 } PSConstantBuffer;
+
+bool Wireframe = false;
 
 // ---------------------------------------------------------------------------------------------------
 // ---------- App functions --------------------------------------------------------------------------
@@ -473,7 +483,6 @@ void AppInit()
 	psoDesc.HS = { reinterpret_cast<UINT8*>(HullShader->GetBufferPointer()), HullShader->GetBufferSize() };
 	psoDesc.DS = { reinterpret_cast<UINT8*>(DomainShader->GetBufferPointer()), DomainShader->GetBufferSize() };
 	D3D12_RASTERIZER_DESC RasterDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	//RasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	RasterDesc.MultisampleEnable = FALSE;
 	psoDesc.RasterizerState = RasterDesc;
 	psoDesc.BlendState = BlendDesc;
@@ -487,6 +496,9 @@ void AppInit()
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.SampleDesc.Count = 1;
 	D_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&D_PipelineState));
+
+	psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	D_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&D_PipelineStateWireFrame));
 	// --------------------------------------------------------------------------------------
 	// CREATE COMMAND LIST
 	D_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D_CommandAllocator.Get(),
@@ -730,7 +742,8 @@ void AppTick(float DeltaTime)
 
 	// --------------------------------------------------------------------------------------
 	D_CommandAllocator->Reset();
-	D_CommandList->Reset(D_CommandAllocator.Get(), D_PipelineState.Get());
+	D_CommandList->Reset(D_CommandAllocator.Get(), Wireframe ? D_PipelineStateWireFrame.Get() :
+		D_PipelineState.Get());
 
 	D_CommandList->SetGraphicsRootSignature(D_RootSignature.Get());
 	SetViewportSize(WindowWidth, WindowHeight);
@@ -774,6 +787,12 @@ void AppTick(float DeltaTime)
 	ImGui::SliderFloat("Height", &PSConstantBuffer.Height, 0.0f, 10.0f);
 	ImGui::SliderFloat("TesselationOffset", &PSConstantBuffer.TesselationOffset, 0.0f, 100.0f);
 	ImGui::SliderFloat("TesselationLength", &PSConstantBuffer.TesselationLength, 0.0f, 100.0f);
+	ImGui::Checkbox("Wireframe", &Wireframe);
+	ImGui::SliderFloat("WaveLength", &PSConstantBuffer.WaveLength, 5.0f, 100.0f);
+	ImGui::SliderFloat3("WaveDirection", &PSConstantBuffer.Direction.X, 0.0f, 1.0f);
+	ImGui::SliderFloat("WaveAmplitude", &PSConstantBuffer.Amplitude, 0.0f, 5.0f);
+	ImGui::SliderFloat("WaveSpeed", &PSConstantBuffer.Speed, 0.0f, 0.0001f, "%.5f");
+
 	ImGui::End();
 
 	ImGui::EndFrame();

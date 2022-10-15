@@ -11,11 +11,17 @@ cbuffer Matrices : register(b0)
 cbuffer PSConstantBufferLayout : register(b1)
 {
 	float3 ColorOverlay;
-	float TesselationAmount = 64;
-	float Height = 2.0f;
-	float TesselationOffset = 5.0f;
-	float TesselationLength = 15.0f;
-	float Pad1[57];
+	float TesselationAmount;
+	float Height;
+	float TesselationOffset;
+	float TesselationLength;
+	float WaveLength;
+
+	float3 Direction;
+	float Amplitude;
+
+	float Speed;
+	float Pad1[51];
 }
 
 struct VSOut
