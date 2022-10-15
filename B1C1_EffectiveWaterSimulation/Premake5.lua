@@ -10,6 +10,9 @@ project "B1C1_EffectiveWaterSimulation"
 	targetdir ("../Bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("../Intermediate/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "pch.h"
+	pchsource "Source/pch.cpp"
+
 	files
 	{
 		"Source/**.h",
@@ -19,48 +22,55 @@ project "B1C1_EffectiveWaterSimulation"
 
 	links
 	{
-		--"d3d12.lib",
-		--"D3DCompiler.lib",
-		--"DXGI.lib",
-		--"dxguid.lib"
+		"d3d12.lib",
+		"D3DCompiler.lib",
+		"DXGI.lib",
+		"dxguid.lib"
 	}
 	
-	--	postbuildcommands 
-	--{
-	--	"{RMDIR} ../Bin/" .. outputdir .. "/Content/",
-	--	"{COPY} ../Content/ ../Bin/" .. outputdir .. "/Content/",
-	--
-	--	"{RMDIR} ../Bin/" .. outputdir .. "/playground/Source/Shader",
-	--	"{COPY} Source/Shader ../Bin/" .. outputdir .. "/playground/Source/Shader/"		
-	--}
+	postbuildcommands 
+	{
+		"{RMDIR} ../Bin/" .. outputdir .. "/Content/B1C1",
+		"{COPY} ../Content/B1C1 ../Bin/" .. outputdir .. "/Content/B1C1",
+
+		"{RMDIR} ../Bin/" .. outputdir .. "/B1C1_EffectiveWaterSimulation/Source/Shader",
+		"{COPY} Source/Shader ../Bin/" .. outputdir .. "/B1C1_EffectiveWaterSimulation/Source/Shader/"		
+	}
 	
 	libdirs
 	{
-		"ThirdParty/Library/**"
+		"../ThirdParty/Library/**"
 	}
 	
 	includedirs
 	{
-		"%{prj.name}/Source",
-		"%{prj.name}/Source/imgui",
-		"ThirdParty/Header"
+		"Source",
+		"Source/imgui",
+		"../ThirdParty/Header"
 	}
 
-
---	filter("files:**.hlsl")
---		  flags("ExcludeFromBuild")
---		  shaderobjectfileoutput(shader_dir.."%{file.basename}"..".cso")
---		  shaderassembleroutput(shader_dir.."%{file.basename}"..".asm")
+	filter "files:**/imgui/**"
+		flags {"NoPCH"}
 
 	filter("files:**_ps.hlsl")
 		removeflags("ExcludeFromBuild")
 		shadertype("Pixel")
-		shadermodel("4.0")	
+		shadermodel("5.0")	
 
    filter("files:**_vs.hlsl")
 		removeflags("ExcludeFromBuild")
 		shadertype("Vertex")
-		shadermodel("4.0")	
+		shadermodel("5.0")	
+
+	filter("files:**_hl.hlsl")
+		removeflags("ExcludeFromBuild")
+		shadertype("Hull")
+		shadermodel("5.0")	
+		
+	filter("files:**_dm.hlsl")
+		removeflags("ExcludeFromBuild")
+		shadertype("Domain")
+		shadermodel("5.0")	
 
 	filter "configurations:Debug"
 		defines
