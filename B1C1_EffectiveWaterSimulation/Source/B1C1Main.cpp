@@ -3,6 +3,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+
 using namespace Microsoft::WRL;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -141,7 +144,7 @@ Vector3f CameraPosition(0.0f, 10.0f, 0.0f);
 Rotatorf CameraRotation(0.0f);
 
 Vector3f PlaneLocation = Vector3f(0.0f, 0.0f, 2.0f);
-Rotatorf PlaneRotation(270.0f, 0.0f, 0.0f);
+Rotatorf PlaneRotation(360.0f, 0.0f, 0.0f);
 Vector3f PlaneScale(100.0f);
 
 struct UV { float U; float V; };
@@ -153,6 +156,8 @@ struct Vertex
 	UV UVs;
 	Vector3f Pad;
 };
+
+std::vector<Vertex> PlaneVertecies;
 
 Vertex triangleVertices[] =
 {
@@ -178,7 +183,9 @@ struct PSConstantBufferLayout
 	Vector3f ColorOverlay = Vector3f(1.0f);
 	float TesselationAmount = 64;
 	float Height = 2.0f;
-	float Pad1[59];
+	float TesselationOffset = 5.0f;
+	float TesselationLength = 15.0f;
+	float Pad1[57];
 } PSConstantBuffer;
 
 // ---------------------------------------------------------------------------------------------------
@@ -483,7 +490,53 @@ void AppInit()
 		D_PipelineState.Get(), IID_PPV_ARGS(&D_CommandList));
 	// --------------------------------------------------------------------------------------
 	// UPLOAD VERTEX DATA
-	const unsigned int vertexBufferSize = sizeof(triangleVertices);
+	std::string PlaneFilePath = "../Content/B1C1/Plane.obj";
+
+	tinyobj::ObjReader reader;
+
+	if (!reader.ParseFromFile(PlaneFilePath)) 
+	{
+		if (!reader.Error().empty()) {
+			std::cerr << "TinyObjReader: " << reader.Error();
+		}
+	}
+
+	auto& attrib = reader.GetAttrib();
+	auto& shapes = reader.GetShapes();
+
+	size_t index_offset = 0;
+	for (size_t f = 0; f < shapes[0].mesh.num_face_vertices.size(); f++) 
+	{
+		size_t fv = size_t(shapes[0].mesh.num_face_vertices[f]);
+
+		for (size_t v = 0; v < fv; v++) 
+		{
+			tinyobj::index_t idx = shapes[0].mesh.indices[index_offset + v];
+			tinyobj::real_t vx = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
+			tinyobj::real_t vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
+			tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
+		
+			if (idx.texcoord_index >= 0) {
+				tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
+				tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
+
+				Vertex V;
+				V.position = Vector3f(vx, vy, vz);
+				V.color = Vector3f(1);
+				V.UVs = {tx, ty};
+				V.Pad = Vector3f(0);
+
+				PlaneVertecies.push_back(V);
+			}
+		}
+
+		index_offset += fv;
+	}
+
+
+
+	const unsigned int vertexBufferSize = sizeof(Vertex) * PlaneVertecies.size();
+	//const unsigned int vertexBufferSize = sizeof(triangleVertices);
 
 	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 	auto desc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
@@ -498,7 +551,7 @@ void AppInit()
 	UINT8* pVertexDataBegin;
 	CD3DX12_RANGE readRange(0, 0);
 	D_VertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin));
-	memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+	memcpy(pVertexDataBegin, &PlaneVertecies[0], vertexBufferSize);
 	D_VertexBuffer->Unmap(0, nullptr);
 
 	D_VertexBufferView.BufferLocation = D_VertexBuffer->GetGPUVirtualAddress();
@@ -699,7 +752,7 @@ void AppTick(float DeltaTime)
 	//D_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	D_CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	D_CommandList->IASetVertexBuffers(0, 1, &D_VertexBufferView);
-	D_CommandList->DrawInstanced(6, 1, 0, 0);
+	D_CommandList->DrawInstanced(PlaneVertecies.size(), 1, 0, 0);
 
 	
 	// --------------------------------------------------------------

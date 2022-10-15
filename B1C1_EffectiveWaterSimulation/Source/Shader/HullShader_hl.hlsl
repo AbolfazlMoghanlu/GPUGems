@@ -12,7 +12,9 @@ cbuffer PSConstantBufferLayout : register(b1)
 	float3 ColorOverlay;
 	float TesselationAmount = 64;
 	float Height = 2.0f;
-	float Pad1[59];
+	float TesselationOffset = 5.0f;
+	float TesselationLength = 15.0f;
+	float Pad1[57];
 }
 
 struct VSOut
@@ -39,6 +41,7 @@ struct HS_OUTPUT
 Patch ConstantHS(InputPatch<VSOut, 3> patch, uint pI:SV_PrimitiveID)
 {
 	Patch p;
+
 	p.edgeTessFactor[0] = TesselationAmount;
 	p.edgeTessFactor[1] = TesselationAmount;
 	p.edgeTessFactor[2] = TesselationAmount;

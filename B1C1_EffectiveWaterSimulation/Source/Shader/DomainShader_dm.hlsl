@@ -12,7 +12,9 @@ cbuffer PSConstantBufferLayout : register(b1)
 	float3 ColorOverlay;
 	float TesselationAmount = 64;
 	float Height = 2.0f;
-	float Pad1[59];
+	float TesselationOffset = 5.0f;
+	float TesselationLength = 15.0f;
+	float Pad1[57];
 }
 
 
